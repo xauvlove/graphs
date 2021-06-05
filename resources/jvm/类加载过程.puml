@@ -1,0 +1,79 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+: 加载;
+note left
+    将从某个位置的字节码Class文件二进制流读到内存
+    重写 ClassLoader 的 findClass 或者 loadClass
+        即可更换字节码Class文件的读取源头
+    此阶段完成之后，二进制流将会存储到方法区中（jdk8已经将方法去移到了堆中）
+end note
+
+group 连接
+    : 验证;
+    note left
+        验证字节码文件的正确性
+    end note
+    : 准备;
+    note left
+        给静态变量（被 static 修饰的）赋默认值
+        一般赋零值
+        但如果是被 final 修饰的变量，并且给了明面值
+        比如 static final int a = 123;
+        在生成 class 文件时，123 这个值已经被存储到 constantValue 中
+        在准备阶段就会直接给它赋值123 而不是零值
+    end note
+    : 解析;
+    note left
+        是将 符号引用替换成直接引用的过程
+        比如字节码文件，有一个常量 #3 指向 类 java.lang.Object
+        但是 Object 类对象在内存中已经存在了，使用直接引用能够直接找到这个类对象
+        比如这个类对象内存地址为 0x001556FF，
+        替换的过程可能是将 #3 -> 0x001556FF （瞎猜的，书上也没写）
+        替换成内存地址之后，就可以直接拿到 Object 这个类对象了
+    end note
+
+    note right
+        解析包括：
+            类或者接口解析：
+                发现引用着一个类，就会将这个类先用类加载器进行加载，
+                得到这个类对象的位置，将符号引用替换成这个类对象的直接引用（过程是瞎猜的，书上没写，但估计也是这个意思）
+                注意：如果发现引用着的是一个数组类型 src.com.xauv.Ref,
+                那么先用类加载器加载 [src.com.xauv.Ref 这个由虚拟机构造的类
+                再进行符号替换的过程
+            字段解析
+            方法解析
+            接口方法解析
+            ...
+    end note
+end group
+
+group 初始化
+    note
+        给类变量赋值，赋初始值
+        比如 static int a = 123
+        a = 123 这个赋值在初始化这个阶段完成
+    end note
+    : 执行编译器自动生成的 <clinit> 方法;
+    note left
+        执行自己的 <clinit> 方法前，会先执行父类的 <clinit>
+        由于所有类均继承了 Object，因此会先调用 Object 的 <clinit>
+        不光是 class，interface 也有 <clinit> ，执行自己的变量赋值操作
+        但是 interface 不会主动去执行它所继承的父类 interface 的 <clinit> 方法
+    end note
+
+    note right
+        由于 <clinit> 是类级别的，不属于线程私有
+        因此 多个线程在初始化类时，只有一个线程能够执行这个类的 <clinit>
+        其他的线程都会阻塞，但线程被唤醒后，不会重复执行 <clinit> 了
+        在同一个类加载器下，某个类的 <clinit> 只会执行一次
+    end note
+end group
+
+: 使用;
+
+: 卸载;
+stop
+
+@enduml

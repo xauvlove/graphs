@@ -1,0 +1,43 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+
+: 在常量池中查询类的符号引用;
+: 检查符号引用类是否已被加载;
+if (类已经被加载) then(已加载)
+
+else (未加载)
+    : 加载类;
+endif
+
+: 为对象分配内存;
+
+note left
+    对象数据包括 ’对象头‘ ’实例数据’ ’对齐填充‘
+    ’实例数据’ 包括本类属性 父类属性，不同类型的属性排序按照一定的规则排序
+end note
+
+: 虚拟机栈变量指向该内存;
+
+note left
+    标记-复制 算法分配内存使用 指针碰撞方式（Serial，ParNew）
+    标记-清除 算法分配内存使用 内存空间闲置列表方式（CMS）
+end note
+
+: 将对象的属性初始化为 ‘零值’;
+
+: 设置对象类信息 对象头;
+note left
+    一般来说对象头由 ‘Mark word’ 、 ‘类型指针’ 组成
+    Mark word 锁偏向标记初始状态为：
+        ‘可偏向’，并不是 ‘未锁定’
+    ‘类型指针’(用于确定对象是哪个Class的实例)
+end note
+
+: 调用 Class 文件的 <init> 方法，也即构造方法;
+
+: 创建完成;
+stop
+
+@enduml
